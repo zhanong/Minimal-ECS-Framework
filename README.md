@@ -1,3 +1,5 @@
+> Grab the code at my repository: https://github.com/zhanong/Minimal-ECS-Framework
+
 The workflow for Unity's Entity Component System (ECS) is still evolving, and there are no established best practices yet.
 
 There are a bunch of ECS tutorials out there to complement the official documentation, but most of them focus on coding details. However, discussions about the bigger picture—how to structure an entire game—are lacking.
@@ -25,7 +27,7 @@ The framework has the following features:
 - It manages and utilizes a singleton entity **"Messenger"** for passing data between ECS systems.
 
 ## Communication Between MonoBehaviour and ECS
- 
+
 Although it's not recommended to interrupt the ECS process with events, the _**Observer Pattern**_ is still valuable for the separation it creates between requesters and responders.
 
 To send data and requests from ECS systems to monobehaviour class is simple. 
