@@ -1,4 +1,4 @@
-> Grab the code at my repository: https://github.com/zhanong/Minimal-ECS-Framework
+[View On Github](https://github.com/zhanong/Minimal-ECS-Framework)
 
 The workflow for Unity's Entity Component System (ECS) is still evolving, and there are no established best practices yet.
 
