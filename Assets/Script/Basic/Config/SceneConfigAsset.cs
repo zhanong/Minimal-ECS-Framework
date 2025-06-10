@@ -1,3 +1,10 @@
+/*
+
+This class stores the configuration of the scene.
+
+*/
+
+
 using ECSFramework;
 using UnityEngine;
 using ZhTool.Entities;

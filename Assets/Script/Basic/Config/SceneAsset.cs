@@ -1,3 +1,9 @@
+/*
+
+This class stores the data that needs to be loaded for the scene.
+
+*/
+
 using Unity.Entities.Serialization;
 using UnityEngine;
 
