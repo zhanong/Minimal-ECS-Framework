@@ -70,7 +70,7 @@ Two design patterns are recommended in this framework:
 
 This is the execution order I recommand:
 
-![System Organization](<img/System Organization.png>)
+![System Organization](img/SystemOrganization.png)
 
 > 
 > When you make structural changes, some state is only updated at the end of the frame. That's why I put the `Create/Destroy Entities` group at the last step. But for the sake of intuition, let's start with `Handle User Input`.
