@@ -10,8 +10,6 @@
 // {
 //     public partial class XXXX : SystemBase
 //     {
-//         Entity msn;
-
 //         protected override void OnCreate()
 //         {
 //             // This system will not update until the scene transition is complete
@@ -20,14 +18,8 @@
 
 //         protected override void OnUpdate()
 //         {
-//             // Get the messenger singleton entity
-//             if (msn == Entity.Null)
-//             {
-//                 msn = SystemAPI.GetSingletonEntity<Messenger>();
-//                 return;
-//             }
-
 //             // Check if the system needs to reset its state for a new scene
+//             var msn = SystemAPI.GetSingletonEntity<SystemResetMSN>();
 //             if (SystemAPI.IsComponentEnabled<SystemResetMSN>(msn))
 //             {
 //                 // reset your system if needed 
@@ -54,9 +46,6 @@
 // {
 //     public partial struct XXXX : ISystem
 //     {
-//         Entity msn;
-
-
 //         [BurstCompile]
 //         void OnCreate(ref SystemState state)
 //         {
@@ -67,15 +56,8 @@
 //         [BurstCompile]
 //         void OnUpdate(ref SystemState state)
 //         {
-//             // Get the messenger singleton entity
-//             if (msn == Entity.Null)
-//             {
-//                 msn = SystemAPI.GetSingletonEntity<Messenger>();
-//                 return;
-
-//             }
-
 //             // Check if the system needs to reset its state for a new scene
+//             var msn = SystemAPI.GetSingletonEntity<SystemResetMSN>();
 //             if (SystemAPI.IsComponentEnabled<SystemResetMSN>(msn))
 //             {
 //                 // reset your system if needed 

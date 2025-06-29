@@ -31,16 +31,15 @@ namespace ECSFramework
             switch (state)
             {
                 case State.OnInitialize:
-                    ecb.AddComponent<T>(msn);
+                    CreateSingleton<T>(ref ecb);
                     break;
                 case State.OnNewScene:
-                    var component = EntityManager.GetComponentData<T>(msn);
-                    component.Reset();
-                    EntityManager.SetComponentData(msn, component);
+                    EntityManager.CreateEntityQuery(typeof(T)).TryGetSingletonRW<T>(out var singleton1);
+                    singleton1.ValueRW.Reset();
                     break;
                 case State.OnDestroy:
-                    component = EntityManager.GetComponentData<T>(msn);
-                    component.Dispose();
+                    EntityManager.CreateEntityQuery(typeof(T)).TryGetSingletonRW<T>(out var singleton2);
+                    singleton2.ValueRW.Dispose();
                     break;
             }
         }
@@ -51,16 +50,15 @@ namespace ECSFramework
             switch (state)
             {
                 case State.OnInitialize:
-                    ecb.AddComponent<T>(msn);
+                    CreateSingleton<T>(ref ecb);
                     break;
                 case State.OnNewScene:
-                    var component = EntityManager.GetComponentData<T>(msn);
-                    component.Reset(sceneConfig, sceneID);
-                    EntityManager.SetComponentData(msn, component);
+                    EntityManager.CreateEntityQuery(typeof(T)).TryGetSingletonRW<T>(out var singleton1);
+                    singleton1.ValueRW.Reset(sceneConfig, sceneID);
                     break;
                 case State.OnDestroy:
-                    component = EntityManager.GetComponentData<T>(msn);
-                    component.Dispose();
+                    EntityManager.CreateEntityQuery(typeof(T)).TryGetSingletonRW<T>(out var singleton2);
+                    singleton2.ValueRW.Dispose();
                     break;
             }
         }

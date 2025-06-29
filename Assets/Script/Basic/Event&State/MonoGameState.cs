@@ -12,7 +12,6 @@ public class MonoMSN : IBasicManager
     public static MonoMSN singleton;
     public bool basicEventRegistered;
     public EntityManager entityManager;
-    public Entity msn;
 
     public Dictionary<EntityQueryDesc, EntityQuery> queryMap;
 

@@ -23,12 +23,12 @@ Systems aren't as flexible as MonoBehaviours for reacting to events, but I would
 The framework provides minimal, basic MonoBehaviour managers and ECS systems, making it easy to understand and modify.
 
 The framework has the following features:
-- It uses the _**Observer Pattern**_ for communication between MonoBehaviours and ECS systems.
-- It manages and utilizes a singleton entity **"Messenger"** for passing data between ECS systems.
+- It uses the _**Observer Pattern** for communication between MonoBehaviours and ECS systems.
+- It manages and utilizes a list of singleton entities **"Messenger (MSN)"** for passing data between ECS systems.
 
 ## Communication Between MonoBehaviour and ECS
 
-Although it's not recommended to interrupt the ECS process with events, the _**Observer Pattern**_ is still valuable for the separation it creates between requesters and responders.
+Although it's not recommended to interrupt the ECS process with events, the **Observer Pattern** is still valuable for the separation it creates between requesters and responders.
 
 To send data and requests from ECS systems to monobehaviour class is simple. 
 
@@ -76,8 +76,8 @@ This is the execution order I recommand:
 > When you make structural changes, some state is only updated at the end of the frame. That's why I put the `Create/Destroy Entities` group at the last step. But for the sake of intuition, let's start with `Handle User Input`.
 > 
 
-1. **Handle User Input**: These are systems that handle input from keyboards, UI buttons, etc. Typically, they communicate with UI GameObjects using the _**Observer Pattern**_ mentioned earlier.
-2. **Create/Destroy Entities**: This is the "factory" of the ***Factory Pattern***. They recieve request from other systems via the `Messenger` and do the work. Here the `ChangeMSN` acts as the flag for the ***Single-Frame Pattern***. It's turn off at the begining of the step. If any of the following systems makes a change, it's turn on to trigger the systems in `Update On Change` 
+1. **Handle User Input**: These are systems that handle input from keyboards, UI buttons, etc. Typically, they communicate with UI GameObjects using the **Observer Pattern** mentioned earlier.
+2. **Create/Destroy Entities**: This is the "factory" of the ***Factory Pattern***. They recieve request from other systems and do the work. Here the `ChangeMSN (one of the Messenger singletons)` acts as the flag for the ***Single-Frame Pattern***. It's turn off at the begining of the step. If any of the following systems makes a change, it's turn on to trigger the systems in `Update On Change` 
 3. **Update On Change**: These systems do heavy work, such as rebuilding the pathfinding map or rebuilding the quad tree, so they should only update when there's a relevant change.
 4. **Regular Update**: These systems update every frame. For example, the translation system, time system, etc.
 
@@ -153,7 +153,7 @@ When switching "scenes," a 4-step process occurs:
 1. Destroy the old GameObjects and instantiate the new ones.
 2. Unload the old `subscene_file_for_this_scene` and load the new one.
 3. Destroy all entity instances that were part of the old scene but were instantiated from prefabs in a persistent subscene such as the `subscene_file_for_prefabs`
-4. Reset all data in the ECS systems and the `Messenger`, applying any configuration from the new scene. 
+4. Reset all data in the ECS systems and the `Messengers`, applying any configuration from the new scene. 
 
 In my framework, this is handled by:
 - `SceneLoadManager` :  A MonoBehaviour class that takes care of step 1.
@@ -188,10 +188,16 @@ Frequently, you need to share data among systems. For example:
 - Maps
 - Requests for other systems
 
-The most staightforward way is to create a singleton entity for each "type" of information, as implemented in the official [*ECSGalaxySample*](https://github.com/Unity-Technologies/ECSGalaxySample/tree/main). However, each singleton occupies a 16KB-sized chunk, and this can add up to a significant memory load. Furthermore, managing multiple singletons during a scene transition is cumbersome. Therefore, I recommend attaching all shared components to a single entity: the `Messenger`.
+Whether the data are stored in collections make a significant difference in managing.
 
-The `SMessenger` is a system that manage the `Messenger` entity.
-1. After switched to a new scene, it reset all components attached to the `Messenger`. 
+As is brought out in this [discussion](https://discussions.unity.com/t/my-minimal-ecs-framework/1652529/4), you can do it in this way:
+- For MSNs without native collections, the most straight foward way is to attach each component on a gameobject and put them inside the `subscene_file_for_this_scene`.
+- For MSNs with native collections, you can create a system for each MSN which manage their creating and disposal. Then you attach the component to the system's associated entity, as shown in the [Unity official manual](https://docs.unity3d.com/Packages/com.unity.entities@1.0/manual/systems-data.html).
+
+This framework use a different way to minize boilerplates. It use one system to handle all MSNs, so that after you create a MSN, you just need to add one line, instead of creating a authoring class or a new system.  
+
+The `SMessenger` is a system that manage the MSN singletons.
+1. After switched to a new scene, it reset all MSNs. 
 2. It pauses and resumes custom systems by adding and removing a flag component, like `InitCompleted`, during the scene transition.
 3. Additionally, it triggers custom systems to reset their internal fields using the ***Single-frame Flag Pattern*** with the `SystemResetMSN` as a flag.
 
@@ -209,7 +215,7 @@ void AddOrResetComponents(ref EntityCommandBuffer ecb)
 
 #### Components with Native Collections
 
-However, sometimes you need to use a collection for sharing data, such as a queue of requests for other systems or a 2D map of obstacles. For this, we can consider `DynamicBuffer` or a component with a `NativeCollection`. Most of the time, a `NativeCollection` is more useful due to its flexibility. The main thing we need to worry about is managing their creation and disposal.
+For components with collections, such as a queue of requests for other systems or a 2D map of obstacles, we can consider `DynamicBuffer` or a component with a `NativeCollection`. Most of the time, a `NativeCollection` is more useful due to its flexibility. The main thing we need to worry about is managing their creation and disposal.
 
 Another part of the `SMessenger` system is responsible for managing components that contain `NativeCollection` types. Your custom components need to implement one of these interfaces:
 - `ISceneRelatedNativeCollectionComponent` For when the `NativeCollection` needs information from the new scene for initialization (e.g., a 2D map needs to know the world size).
@@ -244,13 +250,6 @@ public partial class XXXX : SystemBase
 
 	protected override void OnUpdate()
 	{
-		// Get the messenger singleton entity
-		if (msn == Entity.Null)
-		{
-			msn = SystemAPI.GetSingletonEntity<Messenger>();
-			return;
-		}
-
 		// Check if the system needs to reset its state for a new scene
 		if (SystemAPI.IsComponentEnabled<SystemResetMSN>(msn))
 		{
@@ -262,11 +261,11 @@ public partial class XXXX : SystemBase
 }
 ```
 
-You can then read from and write to the components on the `msn` entity using `SystemAPI` to share data with other systems.
-
 ## To Be Improved
 
 - **Save/Load module**: A save/load system would likely need to be inserted into the scene transition process, executing between the `SLoadScene` and `SMessenger` systems.
+- **Animation**
+- **UI Toolkit**
 
 
 

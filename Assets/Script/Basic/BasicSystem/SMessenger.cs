@@ -1,5 +1,5 @@
 /*
-    This system is responsible for managing the centralized components attached to the msn entity.
+    This system is responsible for managing the centralized components.
     It's behavior includes:
         1. At the very beginning, it creates the msn entity and adds all centralized components to it.
            it also creates native collections for all centralize native collection components and add them to the msn entity.
@@ -13,7 +13,6 @@ namespace ECSFramework
 {
     public partial class SMessenger : SystemBase
     {
-        Entity msn;
         bool reset_or_add;
 
         bool onNewScene;
@@ -29,13 +28,13 @@ namespace ECSFramework
 
             initializedFlag = EntityManager.CreateEntity();
 
-            // add centralized components that doesn't need to be reset on new scene
-            msn = EntityManager.CreateEntity
-            (typeof(Messenger), typeof(SystemResetMSN),
-            typeof(EcbMSN), typeof(InputMSN));
-
-            // add all centralized native collection components
+            // create centralized components that doesn't need to be reset on new scene
             EntityCommandBuffer ecb = new(Allocator.Temp);
+            CreateSingleton<SystemResetMSN>(ref ecb);
+            CreateSingleton<EcbMSN>(ref ecb);
+            CreateSingleton<InputMSN>(ref ecb);
+
+            // create centralized native collection components
             BatchProcessCollection(State.OnInitialize, ref ecb, default, default);
             ecb.Playback(EntityManager);
 
@@ -46,9 +45,9 @@ namespace ECSFramework
             // register event on new scene load
             BasicEventManager.singleton.questLoadScene += OnLoadScene;
 
+
             // set up monoMSN
             MonoMSN.singleton.entityManager = EntityManager;
-            MonoMSN.singleton.msn = msn;
             MonoMSN.singleton.basicEventRegistered = true;
         }
 
@@ -63,9 +62,9 @@ namespace ECSFramework
         protected override void OnUpdate()
         {
             // Turn off Reset-System Flag
-            if (SystemAPI.HasComponent<SystemResetMSN>(msn))
+            if (SystemAPI.TryGetSingletonEntity<SystemResetMSN>(out var systemResetMSN))
             {
-                SystemAPI.SetComponentEnabled<SystemResetMSN>(msn, false);
+                SystemAPI.SetComponentEnabled<SystemResetMSN>(systemResetMSN, false);
             }
 
             // initialize/reset the msn entity on new scene
@@ -93,7 +92,8 @@ namespace ECSFramework
             if (newSceneInitialized)
             {
                 newSceneInitialized = false;
-                SystemAPI.SetComponentEnabled<SystemResetMSN>(msn, true);
+                systemResetMSN = SystemAPI.GetSingletonEntity<SystemResetMSN>();
+                SystemAPI.SetComponentEnabled<SystemResetMSN>(systemResetMSN, true);
             }
         }
 
@@ -103,21 +103,31 @@ namespace ECSFramework
             AddOrResetComponent<InitCompleted>(ref ecb, reset_or_add);
         }
 
-        void AddOrResetComponent<T>(ref EntityCommandBuffer ecb, bool _reset_or_add) where T : unmanaged, IComponentData
+        void AddOrResetComponent<T>(ref EntityCommandBuffer ecb, bool _reset_or_create) where T : unmanaged, IComponentData
         {
-            if (!_reset_or_add)
-                ecb.AddComponent<T>(msn);
+            if (!_reset_or_create)
+                CreateSingleton<T>(ref ecb);
             else
+            {
+                var msn = EntityManager.CreateEntityQuery(typeof(T)).GetSingletonEntity();
                 ecb.SetComponent<T>(msn, new());
+            }
         }
 
         void ResetComponentEnable(ref EntityCommandBuffer ecb)
         {
             // !!! Reset any enablable centralized compoennts here !!!
         }
+
+        void CreateSingleton<T>(ref EntityCommandBuffer ecb) where T : unmanaged, IComponentData
+        {
+            var entity = ecb.CreateEntity();
+            ecb.AddComponent<T>(entity);
+        }
     }
-    
-    public struct InitCompleted : IComponentData { }
-    public struct Messenger : IComponentData { }
-    public struct SystemResetMSN : IComponentData, IEnableableComponent { }
 }
+
+public struct InitCompleted : IComponentData { }
+public struct Messenger : IComponentData { }
+public struct SystemResetMSN : IComponentData, IEnableableComponent { }
+
